@@ -4,9 +4,7 @@ import cv2
 from cv2.typing import MatLike
 import numpy as np
 
-from cardscan.pipeline_instances import (
-    find_polygone_black_frame_pipeline as pipeline,
-)
+from cardscan import scan
 
 from cardscan.image_processing import copy_bgr
 
@@ -40,10 +38,15 @@ def run():
         if not ret:
             break
 
-        output_frames, intermediate_results = pipeline.run_debug(cam_frame)
-        if output_frames is not None and len(output_frames):
-            frame = output_frames[0]
-        contours, _ = intermediate_results["Approximate quadrilater"]
+        _, [contours, final_imgs] = scan(
+            cam_frame,
+            results=[
+                "Approximate quadrilater contours",
+                "Rotate top left corner low density",
+            ],
+        )
+        if len(final_imgs):
+            frame = final_imgs[0]
 
         cam_frame = draw_contours(cam_frame, contours)
 

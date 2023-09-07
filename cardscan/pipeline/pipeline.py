@@ -39,12 +39,31 @@ class Pipeline:
         self.label = label
         self.parent_pipeline = parent_pipeline
 
-    def run(self, input: Any, parent_pipeline=None):  # TODO typing
+    def run(
+        self,
+        input: Any,
+        parent_pipeline=None,
+        results: Optional[List[str] | None] = None,
+    ):
         self.initial_input_getter = lambda: input
         input_copy = input
-        for pipecell in self.pipecells:
-            input_copy = pipecell.run(input_copy, pipecell.parent_pipeline)
-        return input_copy
+        if results is None:
+            for pipecell in self.pipecells:
+                input_copy = pipecell.run(input_copy, pipecell.parent_pipeline)
+            return input_copy
+        else:
+            intermediate_results_output = []
+            for pipecell in self.pipecells:
+                if isinstance(pipecell, Pipeline):
+                    input_copy, intermediate_results = pipecell.run(
+                        input_copy, pipecell.parent_pipeline, results=results
+                    )
+                    intermediate_results_output += intermediate_results
+                else:
+                    input_copy = pipecell.run(input_copy, pipecell.parent_pipeline)
+                    if pipecell.label in results:
+                        intermediate_results_output.append(input_copy)
+            return input_copy, intermediate_results_output
 
     def run_debug(self, input: Any):  # TODO typing
         org_input = input.copy()
