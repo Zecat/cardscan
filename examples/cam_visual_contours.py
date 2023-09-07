@@ -4,7 +4,7 @@ import cv2
 from cv2.typing import MatLike
 import numpy as np
 
-from cardscan import scan
+from cardscan import scan, card_contours, card_images
 
 from cardscan.image_processing import copy_bgr
 
@@ -38,12 +38,9 @@ def run():
         if not ret:
             break
 
-        _, [contours, final_imgs] = scan(
+        contours, final_imgs = scan(
             cam_frame,
-            results=[
-                "Approximate quadrilater contours",
-                "Rotate top left corner low density",
-            ],
+            results=[card_contours, card_images],
         )
         if len(final_imgs):
             frame = final_imgs[0]

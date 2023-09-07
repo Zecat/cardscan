@@ -1,1 +1,1 @@
-from cardscan.pipeline_instances import scan
+from cardscan.pipeline_instances import *

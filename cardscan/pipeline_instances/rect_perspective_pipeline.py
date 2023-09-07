@@ -1,4 +1,4 @@
-from cardscan.pipeline import Pipeline, Pipecell
+from cardscan.pipeline import Pipeline, Transform
 import functools
 import cv2
 
@@ -34,55 +34,61 @@ def debug_identity(arg, pipeline):
     return arg
 
 
-find_quadrilater_black_frame_contours_pipeline = Pipeline(
+find_contours_def = Transform(
+    lambda img, *_: cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE),
+    label="Find contours",
+    debug=debug_contours_def,
+)
+
+filter_contours_shape_size = Transform(
+    lambda contours_def, *_: (
+        filter_contours_by_size(contours_def[0]),
+        contours_def[1],
+    ),
+    label="Filter contour by size",
+    debug=debug_contours_map_def,
+)
+
+filter_surronding_contours = Transform(
+    lambda contours_def, *_: filter_containing_contours(
+        contours_def[0], contours_def[1]
+    ),
+    label="Filter containing contours",
+    debug=debug_contours,
+)
+
+approx_filter_quad = Transform(
+    lambda contours, _: filter_4_edges_contours(contours_to_poly(contours)),
+    label="Approximate quadrilater contours",
+    debug=debug_contours,
+)
+
+card_contours = Pipeline(
     [
-        Pipecell(
-            lambda img, *_: cv2.findContours(
-                img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-            ),
-            label="Find contours",
-            debug=debug_contours_def,
-        ),
-        Pipecell(
-            lambda contours_def, *_: (
-                filter_contours_by_size(contours_def[0]),
-                contours_def[1],
-            ),
-            label="Filter contour by size",
-            debug=debug_contours_map_def,
-        ),
-        Pipecell(
-            lambda contours_def, *_: filter_containing_contours(
-                contours_def[0], contours_def[1]
-            ),
-            label="Filter containing contours",
-            debug=debug_contours,
-        ),
-        Pipecell(
-            lambda contours, _: filter_4_edges_contours(contours_to_poly(contours)),
-            label="Approximate quadrilater contours",
-            debug=debug_contours,
-        ),
+        find_contours_def,
+        filter_contours_shape_size,
+        filter_surronding_contours,
+        approx_filter_quad,
     ],
     label="quadrilater black frame contours pipeline",
 )
 
 canny = functools.partial(cv2.Canny, threshold1=150, threshold2=255, apertureSize=3)
 
-find_polygone_black_frame_pipeline = Pipeline(
+card_images = Pipeline(
     [
-        Pipecell(
+        Transform(
             lambda img, *_: copy_gray(img),
             label="Gray",
             debug=lambda img, *_: [img],
         ),
-        Pipecell(
+        Transform(
             lambda img, *_: canny(img),
             label="Canny",
             debug=lambda arg, *_: [arg],
         ),
-        find_quadrilater_black_frame_contours_pipeline,
-        Pipecell(
+        card_contours,
+        Transform(
             lambda contours, pipeline, *_: [
                 perspective_crop(contour, pipeline.initial_input_getter())
                 for contour in contours
@@ -90,7 +96,7 @@ find_polygone_black_frame_pipeline = Pipeline(
             label="Perspective crop",
             debug=lambda imgs, *_: imgs,
         ),
-        Pipecell(
+        Transform(
             lambda imgs, *_: [
                 rotate_top_left_corner_low_density(img, corner_size=50) for img in imgs
             ],
@@ -101,4 +107,4 @@ find_polygone_black_frame_pipeline = Pipeline(
     label="Find polygone border pipeline",
 )
 
-scan = find_polygone_black_frame_pipeline.run
+scan = card_images.run

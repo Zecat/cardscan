@@ -3,20 +3,20 @@ from typing import Callable, List, Optional, Any, Type
 from cv2.typing import MatLike
 
 
-class Pipecell:
+class Transform:
     def __init__(
         self,
         run: Callable,
         debug: Callable = None,
         label: Optional[str] = "Pipecell",
     ):
-        self.run = run
+        self._run = run
         self.label = label
         self.debug = debug
         self.parent_pipeline = None
 
     def run_debug(self, input):
-        output = self.run(input, self.parent_pipeline)
+        output = self._run(input, self.parent_pipeline)
         if not self.debug:
             debug_cb = None
         debug_cb = lambda: self.debug(output, self.parent_pipeline)
@@ -29,9 +29,10 @@ class Pipeline:
 
     def __init__(
         self,
-        pipecells: List[Pipecell | Type["Pipeline"]],
+        pipecells: List[Transform | Type["Pipeline"]],
         label: Optional[str] = "Pipeline",
         parent_pipeline=None,
+        results: Optional[List[Transform]] = None,
     ):
         for cell in pipecells:
             cell.parent_pipeline = self
@@ -39,31 +40,49 @@ class Pipeline:
         self.label = label
         self.parent_pipeline = parent_pipeline
 
+    def _run(
+        self,
+        input: Any,
+        parent_pipeline=None,
+        results: Optional[List[Transform] | None] = None,
+        aggregated_results: Optional[List[Any]] = None,
+    ):
+        self.initial_input_getter = lambda: input
+        input_copy = input
+
+        if results is None:
+            for transform in self.pipecells:
+                input_copy = transform._run(input_copy, transform.parent_pipeline)
+            return input_copy
+
+        for transform in self.pipecells:
+            if isinstance(transform, Pipeline):
+                input_copy = transform._run(
+                    input_copy,
+                    transform.parent_pipeline,
+                    results=results,
+                    aggregated_results=aggregated_results,
+                )
+            else:
+                input_copy = transform._run(input_copy, transform.parent_pipeline)
+            if transform in results:
+                aggregated_results[results.index(transform)] = input_copy
+        if self in results:
+            aggregated_results[results.index(self)] = input_copy
+        return input_copy
+
     def run(
         self,
         input: Any,
         parent_pipeline=None,
-        results: Optional[List[str] | None] = None,
+        results: Optional[List[Transform] | None] = None,
     ):
-        self.initial_input_getter = lambda: input
-        input_copy = input
         if results is None:
-            for pipecell in self.pipecells:
-                input_copy = pipecell.run(input_copy, pipecell.parent_pipeline)
-            return input_copy
+            output = self._run(input, parent_pipeline)
         else:
-            intermediate_results_output = []
-            for pipecell in self.pipecells:
-                if isinstance(pipecell, Pipeline):
-                    input_copy, intermediate_results = pipecell.run(
-                        input_copy, pipecell.parent_pipeline, results=results
-                    )
-                    intermediate_results_output += intermediate_results
-                else:
-                    input_copy = pipecell.run(input_copy, pipecell.parent_pipeline)
-                    if pipecell.label in results:
-                        intermediate_results_output.append(input_copy)
-            return input_copy, intermediate_results_output
+            output = [[]] * len(results)
+            self._run(input, parent_pipeline, results, output)
+        return output
 
     def run_debug(self, input: Any):  # TODO typing
         org_input = input.copy()
