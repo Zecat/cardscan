@@ -10,14 +10,14 @@ def perspective_crops(contours: List[Contour], img: MatLike):
     return [perspective_crop(contour, img) for contour in contours]
 
 
-def perspective_crop(contour: Contour, img: MatLike):
+def perspective_crop(contour: Contour, img: MatLike, shape=(200, 200)):
     src_points = contour
 
-    w, h = img.shape[:2]
+    w, h = shape[:2]
     top_left_coord = [0, 0]
     top_right_coord = [w, 0]
-    bottom_left_coord = [0, w]
-    bottom_right_coord = [w, w]
+    bottom_left_coord = [0, h]
+    bottom_right_coord = [w, h]
 
     src_points = np.array(src_points, dtype=np.float32)
     dst_points = np.array(
@@ -25,15 +25,16 @@ def perspective_crop(contour: Contour, img: MatLike):
         dtype=np.float32,
     )
     transformation_matrix = cv2.getPerspectiveTransform(src_points, dst_points)
-    w, h = img.shape[:2]
     transformed_image = cv2.warpPerspective(img, transformation_matrix, (w, h))
     cropped_img = transformed_image[0:w, 0:h]
     return cropped_img
 
 
-def rotate_top_left_corner_low_density(img: MatLike, corner_size: int = 20):
-    """Compare the mean intensity of the 4 corners of `img` where each corner is a square with size `corner_size`. Rotate the image so the corner with lowest intensity (more black) is located at the top left."""
+def rotate_top_left_corner_low_density(img: MatLike, corner_width_ratio: float = 0.1):
+    """Compare the mean intensity of the 4 corners of `img` where each corner is a square with size corner_width_ratio*img_width. Rotate the image so the corner with lowest intensity (more black) is located at the top left."""
 
+    h, w = img.shape[:2]
+    corner_size = int(corner_width_ratio * w)
     corners_topleft = [
         (0, 0),  # Top-left corner
         (img.shape[1] - corner_size, 0),  # Top-right corner

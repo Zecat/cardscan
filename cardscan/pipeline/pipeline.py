@@ -1,6 +1,7 @@
 from typing import Callable, List, Optional, Any, Type
 
 from cv2.typing import MatLike
+import copy
 
 
 class Transform:
@@ -66,9 +67,9 @@ class Pipeline:
             else:
                 input_copy = transform._run(input_copy, transform.parent_pipeline)
             if transform in results:
-                aggregated_results[results.index(transform)] = input_copy
+                aggregated_results[results.index(transform)] = copy.deepcopy(input_copy)
         if self in results:
-            aggregated_results[results.index(self)] = input_copy
+            aggregated_results[results.index(self)] = copy.deepcopy(input_copy)
         return input_copy
 
     def run(
@@ -89,6 +90,6 @@ class Pipeline:
         self.initial_input_getter = lambda: org_input
         intermediate_results = {}
         for pipecell in self.pipecells:
-            input, cell_debug = pipecell.run_debug(input)
+            input, cell_debug = pipecell.run_debug(copy.deepcopy(input))
             intermediate_results.update(cell_debug)
         return input, intermediate_results

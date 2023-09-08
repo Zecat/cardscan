@@ -4,7 +4,7 @@ import cv2
 from cv2.typing import MatLike
 import numpy as np
 
-from cardscan import scan, card_contours, card_images
+from cardscan import scan, card_contours_transform, card_images
 
 from cardscan.image_processing import copy_bgr
 
@@ -38,9 +38,10 @@ def run():
         if not ret:
             break
 
+        cam_frame = cv2.flip(cam_frame, 1)
         contours, final_imgs = scan(
             cam_frame,
-            results=[card_contours, card_images],
+            results=[card_contours_transform, card_images],
         )
         if len(final_imgs):
             frame = final_imgs[0]

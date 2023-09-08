@@ -32,33 +32,9 @@ def filter_4_edges_contours(contours):
     return [c for c in contours if len(c) is 4]
 
 
-def filter_contours_by_size(contours, min_size: int = 2000):
-    contour_map = {}
-
-    for i in range(len(contours)):
-        if cv2.contourArea(contours[i]) > min_size:
-            if calc_solidity(contours[i]) > 0.8:
-                contour_map[i] = contours[i]
-                continue
-
-    return contour_map
-
-
-def filter_containing_contours(contour_map, hierarchy):
-    """Unefficient algrorithm to filter the second most nested contours."""
-    for i in list(contour_map.keys()):
-        current_index = i
-        while hierarchy[0][current_index][3] > 0:
-            if hierarchy[0][current_index][3] in contour_map.keys():
-                contour_map.pop(hierarchy[0][current_index][3])
-            current_index = hierarchy[0][current_index][3]
-
-    return list(contour_map.values())
-
-
-## Comparison function for sorting contours
-# def get_contour_precedence(contour, cols):
-#    # USAGE: final_contour_list.sort(key=lambda x: get_contour_precedence(x, binary.shape[1]))
-#    tolerance_factor = 200
-#    origin = cv2.boundingRect(contour)
-#    return ((origin[1] // tolerance_factor) * tolerance_factor) * cols + origin[0]
+def filter_contours_by_size_solidity(contours, min_solidity: float = 0.85):
+    return [
+        contour
+        for contour in contours
+        if cv2.contourArea(contour) > 100 and calc_solidity(contour) > min_solidity
+    ]

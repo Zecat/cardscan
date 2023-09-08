@@ -107,6 +107,8 @@ def run_app(pipeline: Pipeline):
         ret, cam_frame = cam.read()
         if ret is None:
             break
+
+        cam_frame = cv2.flip(cam_frame, 1)
         output, intermediate_results = pipeline.run_debug(cam_frame)
         final_frames = []
         for label, (_, debug_cb) in intermediate_results.items():
