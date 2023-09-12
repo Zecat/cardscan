@@ -106,15 +106,8 @@ def selective_adaptative_threshold(img, *_):
 
 
 reveal_borders_threshold_transform = Transform(
-    lambda img, *_: cv2.adaptiveThreshold(
-        img,
-        255,
-        cv2.ADAPTIVE_THRESH_MEAN_C,
-        cv2.THRESH_BINARY,
-        31,
-        30,
-    ),
-    label="Adaptative mean threshold",
+    selective_adaptative_threshold,
+    label="Selective adaptative mean threshold",
     debug=lambda img, *_: [img],
 )
 
