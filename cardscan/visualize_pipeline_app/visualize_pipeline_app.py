@@ -47,7 +47,7 @@ class Thumbnail:
         font = pygame.font.Font(None, 24)  # None for default font, 36 for font size
 
         # Define the text and text color
-        text_color = (255, 255, 255)  # White color (RGB)
+        text_color = (255, 0, 255)  # White color (RGB)
         text_surface = font.render(self.label, True, text_color)
         text_rect = text_surface.get_rect()
         text_rect.topleft = (20, 20)  # self.rect.topleft
