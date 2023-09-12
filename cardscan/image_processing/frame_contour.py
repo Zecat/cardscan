@@ -32,7 +32,7 @@ def filter_4_edges_contours(contours):
     return [c for c in contours if len(c) is 4]
 
 
-def filter_contours_by_size_solidity(contours, min_solidity: float = 0.85):
+def filter_contours_by_size_solidity(contours, min_solidity: float = 0.9):
     return [
         contour
         for contour in contours

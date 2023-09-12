@@ -54,7 +54,7 @@ approx_filter_quad = Transform(
 
 filter_contours_size_solidity = Transform(
     lambda contours, *_: filter_contours_by_size_solidity(contours),
-    label="Filter contour by size",
+    label="Filter contour by size and solidity",
     debug=debug_contours,
 )
 
