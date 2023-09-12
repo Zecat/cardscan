@@ -74,6 +74,37 @@ gray_transform = Transform(
     debug=lambda img, *_: [img],
 )
 
+
+def selective_adaptative_threshold(img, *_):
+    """Adaptative threshold applied on the non-dark area - black otherwise - to avoid holes in the borders if they are too thick."""
+
+    # Define the size of the local neighborhood for calculating the mean
+    block_size = 5
+
+    # Calculate the mean of the local neighborhood for each pixel
+    mean_values = cv2.boxFilter(img, ddepth=-1, ksize=(block_size, block_size))
+
+    # Define a custom threshold value below which pixels become black
+    custom_threshold = 85
+
+    # Create a mask to identify pixels where the mean value is below the custom threshold
+    custom_mask = mean_values < custom_threshold
+
+    # Apply adaptive thresholding only to pixels where the custom mask is False
+    adaptive_thresholded = cv2.adaptiveThreshold(
+        img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 20
+    )
+
+    # TODO compare and benchmark this other way to do it
+    # adaptive_thresholded = cv2.adaptiveThreshold(
+    #    img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 30
+    # )
+
+    # Combine the adaptive thresholding result with the custom thresholding result
+    result = np.where(custom_mask, 0, adaptive_thresholded)
+    return result
+
+
 reveal_borders_threshold_transform = Transform(
     lambda img, *_: cv2.adaptiveThreshold(
         img,
@@ -105,10 +136,17 @@ rotate_top_left_corner_low_density_transform = Transform(
     debug=lambda imgs, *_: imgs,
 )
 
+canny_transform = Transform(
+    lambda img, *_: cv2.Canny(img, threshold1=150, threshold2=255, apertureSize=3),
+    label="Canny",
+    debug=lambda arg, *_: [arg],
+)
+
 card_images = Pipeline(
     [
         gray_transform,
         reveal_borders_threshold_transform,
+        # or canny_transform,
         card_contours_transform,
         perspective_crop_transform,
         rotate_top_left_corner_low_density_transform,
