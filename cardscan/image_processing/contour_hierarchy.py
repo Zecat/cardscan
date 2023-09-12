@@ -54,9 +54,10 @@ def _aggreate_inner_unique_contours(
 ):
     for outer_contour in outer_contours:
         inner_contours = hier.children(outer_contour)
-        if len(inner_contours) == 1:
+        child_count = len(inner_contours)
+        if child_count == 1:
             aggregated_results.append(inner_contours[0])
-        else:
+        elif child_count:
             nested_outer_contours = []
             for inner_contour in inner_contours:
                 nested_outer_contours += hier.children(inner_contour)
