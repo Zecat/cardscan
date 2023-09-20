@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cardscan"
-version = "0.3.0"
+version = "0.4.0"
 description = "OpenCV python pipeline to finds black bordered frame in an image. Fix the perspective, crop and rotate."
 authors = ["Félix JULLIEN <jullienfelix@gmail.com>"]
 license = "MIT"
