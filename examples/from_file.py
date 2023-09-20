@@ -1,5 +1,6 @@
 from cardscan.pipeline_instances import card_images
 from cardscan import (
+    scan,
     copy_gray,
     perspective_crop_contours,
     card_contours_detection,
@@ -26,9 +27,11 @@ def run(filepath: str):
         card_contours_detection,
         rotate_top_left_corner_low_density_transform,
     ]
-    # Add gaussian blur because of image compression
-    card_images.transforms = (gaussian_transform,) + card_images.transforms
-    results = card_images.run(img, keep_results=keep_results)
+    # Add gaussian blur to smooth image compression artefact
+    results = scan(img, blur=True, keep_results=keep_results)
+    # The previous line is a shortcut for:
+    # card_images.transforms = (gaussian_transform,) + card_images.transforms
+    # results = card_images.run(img, keep_results=keep_results)
     tiles = get_debug_imgs(results, keep_results)
 
     (h, w) = img.shape[:2]

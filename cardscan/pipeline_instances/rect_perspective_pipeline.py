@@ -100,4 +100,13 @@ card_images.setTransforms(
     )
 )
 
-scan = card_images.run
+
+# The blur option help smoth artefact when detecting from a compressed image
+def scan(
+    *args,
+    blur: bool = False,
+    **kwargs,
+):
+    if blur:
+        card_images.transforms = (gaussian_transform,) + card_images.transforms
+    return card_images.run(*args, **kwargs)
