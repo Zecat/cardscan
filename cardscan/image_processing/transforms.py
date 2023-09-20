@@ -13,7 +13,7 @@ def perspective_crops(contours: List[Contour], img: MatLike):
 def perspective_crop(contour: Contour, img: MatLike, shape=(200, 200)):
     src_points = contour
 
-    w, h = shape[:2]
+    h, w = shape[:2]
     top_left_coord = [0, 0]
     top_right_coord = [w, 0]
     bottom_left_coord = [0, h]
@@ -21,12 +21,17 @@ def perspective_crop(contour: Contour, img: MatLike, shape=(200, 200)):
 
     src_points = np.array(src_points, dtype=np.float32)
     dst_points = np.array(
-        [top_left_coord, top_right_coord, bottom_right_coord, bottom_left_coord],
+        [
+            top_right_coord,
+            top_left_coord,
+            bottom_left_coord,
+            bottom_right_coord,
+        ],
         dtype=np.float32,
     )
     transformation_matrix = cv2.getPerspectiveTransform(src_points, dst_points)
     transformed_image = cv2.warpPerspective(img, transformation_matrix, (w, h))
-    cropped_img = transformed_image[0:w, 0:h]
+    cropped_img = transformed_image[0:h, 0:w]
     return cropped_img
 
 

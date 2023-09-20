@@ -1,77 +1,29 @@
-from cardscan.pipeline import Pipeline, Transform
+from cardscan.pipeline import Pipeline, PipelineChoice
 import cv2
 
 from cardscan.image_processing import *
 from cardscan.image_processing.contour_hierarchy import inner_unique_contours
 
-
-def draw_contours(img, contours):
-    if contours is None:
-        return img.copy()
-    img = copy_bgr(img)
-    return [cv2.drawContours(img, contours, -1, (0, 255, 255), 3)]
-
-
-def debug_contours(contours, parent_pipeline):
-    base_img = parent_pipeline.initial_input_getter()
-    return draw_contours(base_img, contours)
-
-
-def debug_contours_def(contours_def, parent_pipeline):
-    c, h = contours_def
-    img = parent_pipeline.initial_input_getter()
-    return draw_contours(img, c)
-
-
-def debug_contours_map_def(contours_map_def, parent_pipeline):
-    cmap, h = contours_map_def
-    img = parent_pipeline.initial_input_getter()
-    c = list(cmap.values())
-    return draw_contours(img, c)
-
-
-def debug_identity(arg, pipeline):
-    return arg
-
-
-inner_unique_contours_transform = Transform(
-    lambda contours_def, *_: inner_unique_contours(contours_def[1], contours_def[0]),
-    label="Find unique inner contours",
-    debug=debug_contours,
+inner_unique_contours_transform = lambda contours_def: inner_unique_contours(
+    contours_def[1], contours_def[0]
 )
 
-find_contours_def = Transform(
-    lambda img, *_: cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE),
-    label="Find contours",
-    debug=debug_contours_def,
+find_contours_def = lambda img: cv2.findContours(
+    img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
 )
 
-approx_filter_quad = Transform(
-    lambda contours, _: filter_4_edges_contours(contours_to_poly(contours)),
-    label="Approximate quadrilater contours",
-    debug=debug_contours,
-)
 
-filter_contours_size_solidity = Transform(
-    lambda contours, *_: filter_contours_by_size_solidity(contours),
-    label="Filter contour by size and solidity",
-    debug=debug_contours,
-)
+def approx_filter_quad(contours):
+    return filter_4_edges_contours(contours_to_poly(contours))
+
 
 card_contours_transform = Pipeline(
-    [
+    (
         find_contours_def,
         inner_unique_contours_transform,
-        filter_contours_size_solidity,
+        filter_contours_by_size_solidity,
         approx_filter_quad,
-    ],
-    label="quadrilater black frame contours pipeline",
-)
-
-gray_transform = Transform(
-    lambda img, *_: copy_gray(img),
-    label="Gray",
-    debug=lambda img, *_: [img],
+    )
 )
 
 
@@ -105,46 +57,47 @@ def selective_adaptative_threshold(img, *_):
     return result
 
 
-reveal_borders_threshold_transform = Transform(
+def perspective_crop_transform(contours, img):
+    return [perspective_crop(contour, img) for contour in contours]
+
+
+rotate_top_left_corner_low_density_transform = lambda imgs: [
+    rotate_top_left_corner_low_density(img, corner_width_ratio=0.1) for img in imgs
+]
+
+
+def canny_transform(img):
+    return cv2.Canny(img, threshold1=150, threshold2=255, apertureSize=3)
+
+
+card_images = Pipeline()
+
+
+def gaussian_transform(img):
+    return cv2.GaussianBlur(img, (5, 5), 1)
+
+
+close_range_card_contours_detection = (canny_transform, card_contours_transform)
+long_range_card_contours_detection = (
     selective_adaptative_threshold,
-    label="Selective adaptative mean threshold",
-    debug=lambda img, *_: [img],
+    card_contours_transform,
+)
+
+card_contours_detection = card_images.choice(
+    close_range_card_contours_detection,
+    long_range_card_contours_detection,
+    first_where=len,
 )
 
 
-perspective_crop_transform = Transform(
-    lambda contours, pipeline, *_: [
-        perspective_crop(contour, pipeline.initial_input_getter())
-        for contour in contours
-    ],
-    label="Perspective crop",
-    debug=lambda imgs, *_: imgs,
-)
-
-rotate_top_left_corner_low_density_transform = Transform(
-    lambda imgs, *_: [
-        rotate_top_left_corner_low_density(img, corner_width_ratio=0.1) for img in imgs
-    ],
-    label="Rotate top left corner low density",
-    debug=lambda imgs, *_: imgs,
-)
-
-canny_transform = Transform(
-    lambda img, *_: cv2.Canny(img, threshold1=150, threshold2=255, apertureSize=3),
-    label="Canny",
-    debug=lambda arg, *_: [arg],
-)
-
-card_images = Pipeline(
-    [
-        gray_transform,
-        reveal_borders_threshold_transform,
-        # or canny_transform,
-        card_contours_transform,
-        perspective_crop_transform,
+perspective_crop_contours = card_images.bind_input(perspective_crop_transform)
+card_images.setTransforms(
+    (
+        copy_gray,
+        card_contours_detection,
+        perspective_crop_contours,
         rotate_top_left_corner_low_density_transform,
-    ],
-    label="Find polygone border pipeline",
+    )
 )
 
 scan = card_images.run

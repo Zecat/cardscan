@@ -43,11 +43,14 @@ install dependencies
 poetry install
 ```
 
-run the pipeline visualization app
+run one of the pipeline visualization app
 
 ``` sh
-poetry run python -m examples.cam_visualize_pipeline
-# or
+poetry run python -m examples.cam_draw_pip
 poetry run python -m examples.cam_use_pipeline
+poetry run python -m examples.cam_visual_pipeline
+poetry run python -m examples.cam_visual_contours
+poetry run python -m examples.cam_simple
+poetry run python -m examples.from_file
 ```
 

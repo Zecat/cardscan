@@ -4,7 +4,11 @@ import cv2
 from cv2.typing import MatLike
 import numpy as np
 
-from cardscan import scan, card_contours_transform, card_images
+from cardscan import (
+    scan,
+    card_contours_transform,
+    rotate_top_left_corner_low_density_transform,
+)
 
 from cardscan.image_processing import copy_bgr
 
@@ -28,34 +32,38 @@ def draw_contours(img, contours):
 
 def run():
     cam = cv2.VideoCapture(0)
-    cv2.namedWindow("cardscan", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty("cardscan", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-    frame = np.zeros((480, 640, 3), dtype=np.uint8)  # Adjust the size as needed
+    win_name = "cardscan"
+    cv2.namedWindow(win_name, cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty(win_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     while True:
+        frame = np.zeros((800, 1200, 3), dtype=np.uint8)
         ret, cam_frame = cam.read()
         if not ret:
             break
 
-        cam_frame = cv2.flip(cam_frame, 1)
         contours, final_imgs = scan(
             cam_frame,
-            results=[card_contours_transform, card_images],
+            keep_results=[
+                card_contours_transform,
+                rotate_top_left_corner_low_density_transform,
+            ],
         )
-        if len(final_imgs):
-            frame = final_imgs[0]
-
         cam_frame = draw_contours(cam_frame, contours)
 
-        cam_frame = scaleWidthKeepRatio(cam_frame, 200)
+        cam_frame = scaleWidthKeepRatio(cam_frame, 300)
         h, w = cam_frame.shape[:2]
 
         # Overlay the smaller image onto the larger one
         frame[0:h, 0:w] = cam_frame
 
+        if len(final_imgs):
+            result = final_imgs[0]
+            r_h, r_w = result.shape[:2]
+            frame[0:r_h, w : w + r_w] = result
+
         # Create an empty frame with the same dimensions
-        cv2.imshow("cardscan", frame)
+        cv2.imshow(win_name, frame)
 
         key = cv2.waitKey(1)
         ESC_KEY = 27

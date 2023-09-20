@@ -11,9 +11,6 @@ python = "^3.10"
 opencv-python = "^4.8.0.76"
 numpy = "^1.25.2"
 
-[tool.poetry.group.dev.dependencies]
-pygame = "^2.5.1"
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

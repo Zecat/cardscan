@@ -12,8 +12,6 @@ def run():
         if not ret:
             break
 
-        cam_frame = cv2.flip(cam_frame, 1)
-        # Create an empty frame with the same dimensions
         output_frame = scan(cam_frame)
         if len(output_frame):
             cv2.imshow("cardscan", output_frame[0])

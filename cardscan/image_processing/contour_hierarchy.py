@@ -67,6 +67,8 @@ def _aggreate_inner_unique_contours(
 
 
 def inner_unique_contours(h, c):
+    if h is None or len(c) == 0:
+        return []
     hier = Hierarchy(h)
     i_results = []
     _aggreate_inner_unique_contours(hier, hier.black_outer_entries(), i_results)
